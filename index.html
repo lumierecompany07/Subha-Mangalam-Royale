@@ -3143,70 +3143,6 @@
         }
     </style>
 
-
-    <!-- LUMIÈRE: responsive full-name display + premium couple-name highlights -->
-    <style id="lumiere-couple-name-autofit-polish">
-        /* Keep every variable couple name visible on one line. JavaScript below
-           only reduces the font when the actual text needs more room. */
-        #introNames,
-        .hero-person-name,
-        #footerNames,
-        #footerTitleNames {
-            max-width: 100% !important;
-            white-space: nowrap !important;
-            overflow: visible !important;
-            text-overflow: clip !important;
-            overflow-wrap: normal !important;
-            word-break: normal !important;
-            hyphens: none !important;
-        }
-
-        /* Premium burgundy -> rose-gold -> burgundy highlight for names on light surfaces. */
-        #introNames,
-        .hero-person-name,
-        #footerNames {
-            background: linear-gradient(
-                105deg,
-                #3A0B12 0%,
-                #711925 24%,
-                #B47B22 47%,
-                #8A2630 66%,
-                #4A1018 100%
-            ) !important;
-            background-size: 240% auto !important;
-            -webkit-background-clip: text !important;
-            background-clip: text !important;
-            -webkit-text-fill-color: transparent !important;
-            color: #65131B !important;
-            filter: drop-shadow(0 2px 6px rgba(76, 27, 15, .16));
-        }
-
-        /* Intro gets a little extra separation from the cinematic artwork. */
-        #introNames {
-            filter:
-                drop-shadow(0 2px 0 rgba(255, 240, 190, .34))
-                drop-shadow(0 5px 13px rgba(78, 34, 14, .18));
-        }
-
-        /* Main bride/groom names keep the existing luxury shimmer, now with clearer highlights. */
-        .hero-person-name {
-            text-shadow: none !important;
-            filter: drop-shadow(0 3px 8px rgba(89, 39, 13, .14));
-        }
-
-        /* Save-the-date footer sits on burgundy, so use luminous champagne/gold. */
-        #footerTitleNames {
-            background: linear-gradient(100deg, #FFF3C9 0%, #D7AA45 45%, #FFF0BA 72%, #C99431 100%) !important;
-            background-size: 220% auto !important;
-            -webkit-background-clip: text !important;
-            background-clip: text !important;
-            -webkit-text-fill-color: transparent !important;
-            color: #F3D98C !important;
-            filter: drop-shadow(0 3px 9px rgba(0,0,0,.28));
-        }
-
-    </style>
-
 </head>
 <body class="invitation-locked bg-[#FAF8F5] text-tropicalText antialiased selection:bg-customDarkRed selection:text-white">
 
@@ -4111,22 +4047,68 @@
             if (window.AOS) setTimeout(() => AOS.refreshHard(), 20);
         }
 
+        function normalizeMomentGallerySlots(items) {
+            if (!Array.isArray(items)) return [];
+            if (items.some(Array.isArray)) {
+                return Array.from({ length: 5 }, (_, index) => {
+                    const slot = items[index];
+                    return (Array.isArray(slot) ? slot : (slot ? [slot] : [])).filter(Boolean).slice(0, 3);
+                }).filter(slot => slot.length);
+            }
+            return items.filter(Boolean).slice(0, 5).map(src => [src]);
+        }
+
+        let momentGalleryTimers = [];
+        function clearMomentGalleryTimers() {
+            momentGalleryTimers.forEach(timer => clearInterval(timer));
+            momentGalleryTimers = [];
+        }
+
+        function openMomentSlotLightbox(slotIndex) {
+            const card = document.querySelector(`[data-moment-slot="${slotIndex}"]`);
+            if (!card) return;
+            const active = card.querySelector('.moment-slide.is-active') || card.querySelector('.moment-slide');
+            if (active?.id) openLightbox(active.id);
+        }
+
         function renderMomentsGallery(items) {
             const section = document.getElementById('momentsSection');
             const grid = document.getElementById('momentsGalleryGrid');
             if (!grid) return;
-            const list = Array.isArray(items) ? items.filter(Boolean) : [];
-            if (!list.length) {
+            clearMomentGalleryTimers();
+            const slots = normalizeMomentGallerySlots(items);
+            if (!slots.length) {
                 if (section) section.classList.add('hidden');
                 grid.innerHTML = '';
                 return;
             }
             if (section) section.classList.remove('hidden');
-            grid.innerHTML = list.map((src, index) => `
-                <div data-aos="${index === 0 ? 'fade-right' : (index % 2 ? 'fade-left' : 'fade-up')}" data-aos-delay="${Math.min(index * 55, 220)}" onclick="openLightbox('gridImg${index}')" class="moment-card ${index === 0 && list.length > 1 ? 'featured' : ''} shadow-lg hover-card-float kandyan-border-subtle group">
-                    <img id="gridImg${index}" src="${escapeHtml(src)}" alt="Moments of Love ${index + 1}" class="slide-img group-hover:scale-105 transition duration-700">
+            grid.innerHTML = slots.map((photos, slotIndex) => `
+                <div data-moment-slot="${slotIndex}" data-aos="${slotIndex === 0 ? 'fade-right' : (slotIndex % 2 ? 'fade-left' : 'fade-up')}" data-aos-delay="${Math.min(slotIndex * 55, 220)}" onclick="openMomentSlotLightbox(${slotIndex})" class="moment-card ${slotIndex === 0 && slots.length > 1 ? 'featured' : ''} shadow-lg hover-card-float kandyan-border-subtle group" style="position:relative;overflow:hidden;">
+                    ${photos.map((src, photoIndex) => `<img id="gridImg${slotIndex}_${photoIndex}" src="${escapeHtml(src)}" alt="Moments of Love ${slotIndex + 1}.${photoIndex + 1}" class="moment-slide slide-img group-hover:scale-105 transition duration-700 ${photoIndex === 0 ? 'is-active' : ''}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:${photoIndex === 0 ? 1 : 0};transition:opacity .9s ease,transform 1.2s ease;">`).join('')}
+                    ${photos.length > 1 ? `<div class="moment-slide-dots" style="position:absolute;left:50%;bottom:9px;transform:translateX(-50%);display:flex;gap:5px;z-index:4;pointer-events:none;">${photos.map((_, i) => `<span data-dot="${i}" style="width:5px;height:5px;border-radius:999px;background:${i === 0 ? 'rgba(255,255,255,.95)' : 'rgba(255,255,255,.45)'};box-shadow:0 1px 5px rgba(0,0,0,.25);"></span>`).join('')}</div>` : ''}
                 </div>
             `).join('');
+
+            slots.forEach((photos, slotIndex) => {
+                if (photos.length < 2) return;
+                const card = grid.querySelector(`[data-moment-slot="${slotIndex}"]`);
+                if (!card) return;
+                let activeIndex = 0;
+                const intervalMs = 3600 + (slotIndex * 350);
+                const timer = setInterval(() => {
+                    const images = [...card.querySelectorAll('.moment-slide')];
+                    const dots = [...card.querySelectorAll('[data-dot]')];
+                    if (!images.length || !document.body.contains(card)) return;
+                    images[activeIndex]?.classList.remove('is-active');
+                    if (images[activeIndex]) images[activeIndex].style.opacity = '0';
+                    activeIndex = (activeIndex + 1) % images.length;
+                    images[activeIndex]?.classList.add('is-active');
+                    if (images[activeIndex]) images[activeIndex].style.opacity = '1';
+                    dots.forEach((dot, i) => dot.style.background = i === activeIndex ? 'rgba(255,255,255,.95)' : 'rgba(255,255,255,.45)');
+                }, intervalMs);
+                momentGalleryTimers.push(timer);
+            });
             if (window.AOS) setTimeout(() => AOS.refreshHard(), 20);
         }
 
@@ -4487,12 +4469,21 @@
 
             if (Array.isArray(data.story)) templateVariables.story = data.story.map(item => ({ ...item }));
             else if (Array.isArray(data.ourStory)) templateVariables.story = data.ourStory.map(item => ({ ...item }));
-            if (Array.isArray(data.gallery)) templateVariables.gallery = [...data.gallery].filter(Boolean);
+            if (Array.isArray(data.gallerySlots)) {
+                templateVariables.gallerySlots = Array.from({ length: 5 }, (_, index) => {
+                    const slot = data.gallerySlots[index];
+                    return (Array.isArray(slot) ? slot : (slot ? [slot] : [])).filter(Boolean).slice(0, 3);
+                });
+                templateVariables.gallery = templateVariables.gallerySlots.map(slot => slot[0]).filter(Boolean);
+            } else if (Array.isArray(data.gallery)) {
+                templateVariables.gallerySlots = null;
+                templateVariables.gallery = [...data.gallery].filter(Boolean).slice(0, 5);
+            }
             if (Array.isArray(data.itinerary)) templateVariables.itinerary = data.itinerary.map(item => ({ ...item }));
 
             applyWeddingDetailsToPageFromState();
             renderLoveStory(templateVariables.story);
-            renderMomentsGallery(templateVariables.gallery);
+            renderMomentsGallery(Array.isArray(templateVariables.gallerySlots) ? templateVariables.gallerySlots : templateVariables.gallery);
             renderItineraryList(templateVariables.itinerary);
             syncCustomizerFromVariables();
 
@@ -4543,115 +4534,54 @@
     </script>
 
     <script>
-        /* =========================================================
-           LUMIÈRE — SMART AUTO-FIT FOR VARIABLE COUPLE NAMES
-           Long bride/groom names stay fully visible. Font size shrinks
-           only when needed, including intro, hero and both footer names.
-           ========================================================= */
+        /* Auto-fit variable bride/groom names without wrapping. */
         function fitHeroCoupleNames() {
-            const isMobile = window.innerWidth <= 640;
-            const configs = [
-                { id: 'introNames',       min: isMobile ? 14 : 20 },
-                { id: 'heroBrideName',    min: isMobile ? 11 : 16 },
-                { id: 'heroGroomName',    min: isMobile ? 11 : 16 },
-                { id: 'footerNames',      min: isMobile ? 11 : 15 },
-                { id: 'footerTitleNames', min: isMobile ? 13 : 18 }
-            ];
+            const names = [
+                document.getElementById('heroBrideName'),
+                document.getElementById('heroGroomName')
+            ].filter(Boolean);
 
-            const items = configs
-                .map(cfg => ({ ...cfg, el: document.getElementById(cfg.id) }))
-                .filter(item => item.el);
+            if (!names.length) return;
 
-            if (!items.length) return;
-
-            /* Restore the exact stylesheet/default size first.
-               Short names therefore stay at the original design size. */
-            items.forEach(({ el }) => {
-                el.style.removeProperty('font-size');
-                el.style.removeProperty('letter-spacing');
-                el.style.setProperty('white-space', 'nowrap', 'important');
-                el.style.setProperty('overflow-wrap', 'normal', 'important');
-                el.style.setProperty('word-break', 'normal', 'important');
-                el.style.setProperty('hyphens', 'none', 'important');
+            names.forEach((el) => {
+                el.style.fontSize = '';
+                el.style.transform = '';
+                el.style.whiteSpace = 'nowrap';
+                el.style.overflowWrap = 'normal';
+                el.style.wordBreak = 'normal';
             });
 
             requestAnimationFrame(() => {
-                /* Measure only the rendered letters, not the width of the block element.
-                   This prevents normal/short names from being shrunk unnecessarily. */
-                const renderedTextWidth = (el) => {
-                    if (!el.firstChild) return 0;
-                    const range = document.createRange();
-                    range.selectNodeContents(el);
-                    const width = range.getBoundingClientRect().width;
-                    range.detach?.();
-                    return width;
-                };
-
-                items.forEach(({ el, min }) => {
+                names.forEach((el) => {
                     const box = el.parentElement;
                     if (!box) return;
 
-                    const boxStyle = getComputedStyle(box);
-                    const horizontalPadding =
-                        (parseFloat(boxStyle.paddingLeft) || 0) +
-                        (parseFloat(boxStyle.paddingRight) || 0);
-                    const available = Math.max(1, box.clientWidth - horizontalPadding - 4);
+                    const available = Math.max(1, box.clientWidth - 2);
+                    let size = parseFloat(getComputedStyle(el).fontSize) || 32;
+                    const minSize = window.innerWidth <= 640 ? 13 : 18;
 
-                    const originalSize = parseFloat(getComputedStyle(el).fontSize) || 32;
-                    let size = originalSize;
-                    let textWidth = renderedTextWidth(el);
-
-                    /* IMPORTANT: do absolutely nothing when the current/original size fits. */
-                    if (textWidth <= available) {
-                        el.dataset.autoFitOriginalSize = originalSize.toFixed(2);
-                        el.dataset.autoFitSize = originalSize.toFixed(2);
-                        el.dataset.autoFitReduced = 'false';
-                        return;
-                    }
-
-                    /* Only an overflowing name reaches this point. */
-                    el.style.setProperty('font-size', size + 'px', 'important');
+                    /* First reduce the font size smoothly. */
                     let guard = 0;
-                    while (textWidth > available && size > min && guard < 220) {
-                        size = Math.max(min, size - 0.5);
-                        el.style.setProperty('font-size', size + 'px', 'important');
-                        textWidth = renderedTextWidth(el);
+                    while (el.scrollWidth > available && size > minSize && guard < 100) {
+                        size -= 0.5;
+                        el.style.fontSize = size + 'px';
                         guard++;
                     }
 
-                    /* Very long names: tighten tracking only after normal font shrinking
-                       is not enough, then use a small emergency floor if still required. */
-                    if (textWidth > available) {
-                        el.style.setProperty('letter-spacing', '-0.015em', 'important');
-                        textWidth = renderedTextWidth(el);
-                        const emergencyMin = isMobile ? 8.5 : 11;
-                        guard = 0;
-                        while (textWidth > available && size > emergencyMin && guard < 120) {
-                            size = Math.max(emergencyMin, size - 0.5);
-                            el.style.setProperty('font-size', size + 'px', 'important');
-                            textWidth = renderedTextWidth(el);
-                            guard++;
-                        }
+                    /* Extremely long names still stay on one row. */
+                    if (el.scrollWidth > available) {
+                        const scale = Math.max(0.52, available / el.scrollWidth);
+                        el.style.transform = `scaleX(${scale})`;
                     }
-
-                    el.dataset.autoFitOriginalSize = originalSize.toFixed(2);
-                    el.dataset.autoFitSize = size.toFixed(2);
-                    el.dataset.autoFitReduced = 'true';
                 });
             });
         }
 
         window.addEventListener('resize', fitHeroCoupleNames, { passive: true });
-        window.addEventListener('orientationchange', fitHeroCoupleNames, { passive: true });
-
         window.addEventListener('DOMContentLoaded', () => {
             fitHeroCoupleNames();
             setTimeout(fitHeroCoupleNames, 120);
             setTimeout(fitHeroCoupleNames, 500);
-
-            if (document.fonts && document.fonts.ready) {
-                document.fonts.ready.then(() => fitHeroCoupleNames()).catch(() => {});
-            }
         });
 
         /* Re-fit after live customizer name edits. */
@@ -4665,9 +4595,9 @@
             };
         }
 
-        /* Also observe direct text changes from dashboard / parent integrations. */
+        /* Also observe direct text changes from dashboard/parent integrations. */
         window.addEventListener('DOMContentLoaded', () => {
-            ['introNames', 'heroBrideName', 'heroGroomName', 'footerNames', 'footerTitleNames'].forEach((id) => {
+            ['heroBrideName', 'heroGroomName'].forEach((id) => {
                 const el = document.getElementById(id);
                 if (!el || !window.MutationObserver) return;
                 new MutationObserver(() => fitHeroCoupleNames()).observe(el, {
@@ -4676,14 +4606,6 @@
                     subtree: true
                 });
             });
-
-            if (window.ResizeObserver) {
-                const observer = new ResizeObserver(() => fitHeroCoupleNames());
-                ['introNames', 'heroBrideName', 'heroGroomName', 'footerNames', 'footerTitleNames'].forEach((id) => {
-                    const el = document.getElementById(id);
-                    if (el?.parentElement) observer.observe(el.parentElement);
-                });
-            }
         });
     </script>
 
