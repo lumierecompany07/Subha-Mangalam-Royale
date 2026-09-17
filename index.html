@@ -3094,7 +3094,55 @@
             text-transform: none !important;
         }
 
+    
+        /* LUMIERE: permanently disable the floating back-to-top control */
+        #backToTopBtn,
+        #backToTopBtn.visible {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+
     </style>
+
+
+    <!-- LUMIERE: hide every visual scrollbar while preserving mouse-wheel/touch scrolling -->
+    <style id="lumiere-hide-all-scrollbars">
+        html, body, * {
+            scrollbar-width: none !important;       /* Firefox */
+            -ms-overflow-style: none !important;    /* Legacy Edge / IE */
+        }
+        html::-webkit-scrollbar,
+        body::-webkit-scrollbar,
+        *::-webkit-scrollbar {
+            width: 0 !important;
+            height: 0 !important;
+            display: none !important;
+            background: transparent !important;
+        }
+        html::-webkit-scrollbar-thumb,
+        body::-webkit-scrollbar-thumb,
+        *::-webkit-scrollbar-thumb {
+            background: transparent !important;
+            border: 0 !important;
+        }
+        html::-webkit-scrollbar-track,
+        body::-webkit-scrollbar-track,
+        *::-webkit-scrollbar-track {
+            background: transparent !important;
+        }
+        .customizer-scroll {
+            scrollbar-width: none !important;
+            -ms-overflow-style: none !important;
+        }
+        .customizer-scroll::-webkit-scrollbar {
+            width: 0 !important;
+            height: 0 !important;
+            display: none !important;
+        }
+    </style>
+
 </head>
 <body class="invitation-locked bg-[#FAF8F5] text-tropicalText antialiased selection:bg-customDarkRed selection:text-white">
 
@@ -3491,11 +3539,6 @@
         </section>
 
     </main>
-
-    <button id="backToTopBtn" type="button" onclick="scrollInvitationToTop()" aria-label="Back to top" title="Back to top">
-        <i class="fa-solid fa-arrow-up text-[11px]"></i>
-    </button>
-
     <div id="lightboxModal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md hidden items-center justify-center p-4" onclick="closeLightbox()">
         <div class="relative max-w-4xl w-full max-h-[90vh] flex items-center justify-center" onclick="event.stopPropagation()">
             <button onclick="closeLightbox()" class="absolute -top-10 right-0 text-white text-2xl font-bold p-2 cursor-pointer">×</button>
@@ -3850,18 +3893,6 @@
             a.remove();
             setTimeout(() => URL.revokeObjectURL(url), 1000);
         }
-
-        function scrollInvitationToTop() {
-            const hero = document.getElementById('heroSection');
-            window.scrollTo({ top: hero ? hero.offsetTop : 0, behavior: 'smooth' });
-        }
-
-        window.addEventListener('scroll', () => {
-            const btn = document.getElementById('backToTopBtn');
-            if (!btn) return;
-            btn.classList.toggle('visible', window.scrollY > window.innerHeight * 0.9);
-        }, { passive: true });
-
         function updateCountdownTarget(dateVal, timeVal) {
             if (!dateVal) return;
             let hours = 0, minutes = 0;
